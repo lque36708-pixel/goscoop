@@ -85,24 +85,4 @@ goscoop uninstall googlechrome
 | Suggest similar name on typo | | ✓ |
 | Warn on leftover installation | | ✓ |
 
-## v0.1.1 — UX improvements
-
-- All commands now handle missing scoop directories gracefully (friendly messages instead of raw Go errors)
-- `findInnounp` respects `SCOOP` env var instead of hard-coded paths
-- Non-fatal search index rebuild after bucket update
-- `uninstall --self` to completely remove goscoop and all scoop data
-- Removed hard-coded Chrome paths in `stillAvailable`
-
-## Not yet implemented
-
-| Command | Original Scoop |
-|---|---|
-| `cleanup` | Remove old versions |
-| `home <app>` | Open homepage |
-| `which <cmd>` | Find app that owns a shim |
-| `prefix` | Show scoop directory |
-| `virustotal` | Check hashes on VirusTotal |
-| `cat <app>` | Show manifest content |
-| `config` | Manage settings |
-| `checkup` | Check for issues |
-| 32-bit architecture | `--arch 32bit` |
+[Đọc bằng tiếng Việt](README_vie.md)
