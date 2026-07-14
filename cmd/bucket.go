@@ -3,11 +3,11 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
 	"ss/internal/config"
+	git2 "ss/internal/git"
 	"ss/internal/progress"
 
 	"github.com/spf13/cobra"
@@ -104,9 +104,8 @@ var bucketAddCmd = &cobra.Command{
 		sp := progress.NewSpinner(fmt.Sprintf("Cloning %s bucket", name))
 		sp.Start()
 
-		gitCmd := exec.Command("git", "clone", repo, bucketDir)
-		if output, err := gitCmd.CombinedOutput(); err != nil {
-			sp.Fail(string(output))
+		if err := git2.Clone(repo, bucketDir, nil); err != nil {
+			sp.Fail(err.Error())
 			return fmt.Errorf("clone %s: %w", repo, err)
 		}
 

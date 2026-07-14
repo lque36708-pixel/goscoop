@@ -4,13 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
 	"ss/internal/bucket"
 	"ss/internal/config"
 	"ss/internal/extract"
+	git2 "ss/internal/git"
 	"ss/internal/persist"
 	"ss/internal/powershell"
 	"ss/internal/progress"
@@ -99,10 +99,8 @@ func updateBuckets(cfg *config.Config) error {
 		spinner := progress.NewSpinner(fmt.Sprintf("Updating %s bucket", entry.Name()))
 		spinner.Start()
 
-		cmd := exec.Command("git", "-C", bucketDir, "pull", "--ff-only")
-		output, err := cmd.CombinedOutput()
-		if err != nil {
-			spinner.Fail(string(output))
+		if err := git2.Pull(bucketDir, nil); err != nil {
+			spinner.Fail(err.Error())
 			continue
 		}
 		spinner.Done("")

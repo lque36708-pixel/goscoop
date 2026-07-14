@@ -18,6 +18,7 @@ import (
 	"ss/internal/config"
 	"ss/internal/download"
 	"ss/internal/extract"
+	git2 "ss/internal/git"
 	"ss/internal/persist"
 	"ss/internal/powershell"
 	"ss/internal/progress"
@@ -270,10 +271,6 @@ func ensureDefaultBuckets(cfg *config.Config) error {
 		}
 	}
 
-	if _, err := exec.LookPath("git"); err != nil {
-		return fmt.Errorf("git is required to download buckets. Install git and run 'goscoop bucket add main <repo>'")
-	}
-
 	fmt.Printf("%sSetting up default buckets...%s\n", progress.Cyan+progress.Bold, progress.Reset)
 	os.MkdirAll(cfg.BucketsDir, 0755)
 
@@ -284,9 +281,8 @@ func ensureDefaultBuckets(cfg *config.Config) error {
 		}
 		sp := progress.NewSpinner(fmt.Sprintf("Cloning %s bucket", name))
 		sp.Start()
-		cmd := exec.Command("git", "clone", repo, bucketDir)
-		if output, err := cmd.CombinedOutput(); err != nil {
-			sp.Fail(string(output))
+		if err := git2.Clone(repo, bucketDir, nil); err != nil {
+			sp.Fail(err.Error())
 			return fmt.Errorf("clone %s: %w", repo, err)
 		}
 		sp.Done("")
