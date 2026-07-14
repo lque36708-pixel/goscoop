@@ -624,6 +624,7 @@ func compressLZX(app, dir string) (currentBefore, currentAfter int64) {
 
 	if err := cmd.Run(); err != nil {
 		sp.Fail("app is running, skipping")
+		currentAfter = currentBefore
 		return
 	}
 	sp.Done("")

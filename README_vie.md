@@ -58,6 +58,7 @@ goscoop uninstall googlechrome
 | `hold/unhold <app>` | Giữ ứng dụng ở phiên bản hiện tại (ngăn cập nhật) |
 | `reset <app>` | Cài đặt lại shim |
 | `optimize` | Nén tất cả ứng dụng bằng LZX |
+| `upgrade` | Tự cập nhật goscoop lên bản mới nhất |
 | `--global`/`-g` | Cài đặt vào `%ProgramData%\scoop` |
 
 ## So sánh tính năng

@@ -60,6 +60,7 @@ goscoop uninstall googlechrome
 | `hold/unhold <app>` | Pin an app to prevent updates |
 | `reset <app>` | Reinstall shims |
 | `optimize` | Compact all apps with LZX compression |
+| `upgrade` | Self-update goscoop to the latest release |
 | `--global`/`-g` | Install to `%ProgramData%\scoop` |
 
 ## Feature comparison
