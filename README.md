@@ -4,16 +4,16 @@ Native Go CLI that replaces Scoop's PowerShell backend. Compatible with existing
 
 ## Install
 
-### One-liner (PowerShell)
+### One-liner (cmd)
 
 **If you already have Scoop** (put in Scoop's shims directory, already on PATH):
-```powershell
-iwr -Uri https://github.com/lque36708-pixel/goscoop/releases/latest/download/goscoop.exe -OutFile "$env:USERPROFILE\scoop\shims\goscoop.exe"
+```cmd
+curl -Lo "%USERPROFILE%\scoop\shims\goscoop.exe" https://github.com/lque36708-pixel/goscoop/releases/latest/download/goscoop.exe
 ```
 
 **Standalone install** (creates `~\goscoop\` and adds to PATH):
-```powershell
-md "$env:USERPROFILE\goscoop" -Force; iwr -Uri https://github.com/lque36708-pixel/goscoop/releases/latest/download/goscoop.exe -OutFile "$env:USERPROFILE\goscoop\goscoop.exe"; setx PATH "$env:PATH;$env:USERPROFILE\goscoop"
+```cmd
+md "%USERPROFILE%\goscoop" && curl -Lo "%USERPROFILE%\goscoop\goscoop.exe" https://github.com/lque36708-pixel/goscoop/releases/latest/download/goscoop.exe && setx PATH "%PATH%;%USERPROFILE%\goscoop"
 ```
 
 No admin required. Restart your terminal after `setx`.
@@ -31,8 +31,6 @@ git clone https://github.com/lque36708-pixel/goscoop.git
 cd goscoop
 go build -o goscoop.exe .
 ```
-
-Put `goscoop.exe` somewhere in your PATH (e.g. `~\scoop\shims\` or `~\goscoop\`).
 
 ## Usage
 
