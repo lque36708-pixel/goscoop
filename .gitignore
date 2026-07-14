@@ -1,0 +1,4 @@
+goscoop.exe
+*.exe
+.vscode/
+.idea/
