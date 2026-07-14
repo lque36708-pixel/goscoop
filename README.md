@@ -1,5 +1,7 @@
 # goscoop
 
+[Đọc bằng tiếng Việt](README_vie.md)
+
 Native Go CLI that replaces Scoop's PowerShell backend. Compatible with existing Scoop buckets and manifests. Single binary, zero runtime dependencies, faster installs.
 
 ## Install
@@ -84,5 +86,3 @@ goscoop uninstall googlechrome
 | `--global` support | ✓ | ✓ |
 | Suggest similar name on typo | | ✓ |
 | Warn on leftover installation | | ✓ |
-
-[Đọc bằng tiếng Việt](README_vie.md)
