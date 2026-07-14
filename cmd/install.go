@@ -477,15 +477,14 @@ $sc.Save()
 }
 
 func removeShortcuts(app string, shortcuts []bucket.ShortcutEntry, global bool) {
-	if len(shortcuts) == 0 {
-		return
-	}
-
 	startMenuDir := filepath.Join(os.Getenv("APPDATA"), "Microsoft", "Windows", "Start Menu", "Programs", "Scoop Apps")
+	programsDir := filepath.Dir(startMenuDir)
 	if global {
 		startMenuDir = filepath.Join(os.Getenv("ProgramData"), "Microsoft", "Windows", "Start Menu", "Programs", "Scoop Apps")
+		programsDir = filepath.Dir(startMenuDir)
 	}
 
+	// Try manifest-based shortcut names first
 	for _, sc := range shortcuts {
 		name := sc.Name
 		shortcutPath := filepath.Join(startMenuDir, name+".lnk")
@@ -494,11 +493,46 @@ func removeShortcuts(app string, shortcuts []bucket.ShortcutEntry, global bool) 
 				fmt.Fprintf(os.Stderr, "Warning: could not remove shortcut %s: %v\n", shortcutPath, err)
 			} else {
 				fmt.Printf("Removing shortcut for %s\n", name)
+				continue
 			}
-		} else {
-			fmt.Fprintf(os.Stderr, "Warning: shortcut not found at %s\n", shortcutPath)
+		}
+		// Scan Programs directory recursively for .lnk matching this name
+		found := false
+		filepath.Walk(programsDir, func(path string, info os.FileInfo, err error) error {
+			if err != nil || info.IsDir() {
+				return nil
+			}
+			if strings.EqualFold(info.Name(), name+".lnk") {
+				if err := os.Remove(path); err == nil {
+					fmt.Printf("Removing shortcut for %s from %s\n", name, path)
+					found = true
+				}
+			}
+			return nil
+		})
+		if !found {
+			fmt.Fprintf(os.Stderr, "Warning: shortcut for %s not found\n", name)
 		}
 	}
+
+	// Also remove any .lnk pointing to this app's install dir
+	// (catches shortcuts created by the app's own installer)
+	appShortcutDir := filepath.Join("apps", app)
+	filepath.Walk(programsDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil || info.IsDir() || !strings.HasSuffix(info.Name(), ".lnk") {
+			return nil
+		}
+		// Read shortcut target via PowerShell to check if it points to this app
+		targetBytes, _ := exec.Command("powershell", "-NoProfile", "-Command",
+			fmt.Sprintf(`(New-Object -ComObject WScript.Shell).CreateShortcut('%s').TargetPath`,
+				strings.ReplaceAll(path, "'", "''"))).Output()
+		if strings.Contains(strings.ToLower(string(targetBytes)), strings.ToLower(appShortcutDir)) {
+			if err := os.Remove(path); err == nil {
+				fmt.Printf("Removing shortcut pointing to %s from %s\n", appShortcutDir, path)
+			}
+		}
+		return nil
+	})
 }
 
 func dirSize(dir string) int64 {
