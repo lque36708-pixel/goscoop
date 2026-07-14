@@ -27,7 +27,11 @@ func uninstallApp(app string, cfg *config.Config) error {
 	appDir := cfg.AppDir(app)
 
 	if _, err := os.Stat(appDir); os.IsNotExist(err) {
-		return fmt.Errorf("'%s' is not installed", app)
+		msg := fmt.Sprintf("'%s' is not installed", app)
+		if similar := findSimilarApps(app, cfg.AppsDir); len(similar) > 0 {
+			msg += fmt.Sprintf(". Did you mean %s?", similar)
+		}
+		return fmt.Errorf("%s", msg)
 	}
 
 	// Find version from version subdirectories
@@ -167,4 +171,52 @@ func stopAppProcesses(app string, cfg *config.Config) {
 			_ = output // process wasn't running, ignore
 		}
 	}
+}
+
+func levenshtein(a, b string) int {
+	la, lb := len(a), len(b)
+	if la == 0 {
+		return lb
+	}
+	if lb == 0 {
+		return la
+	}
+	prev := make([]int, lb+1)
+	cur := make([]int, lb+1)
+	for j := range prev {
+		prev[j] = j
+	}
+	for i := 0; i < la; i++ {
+		cur[0] = i + 1
+		for j := 0; j < lb; j++ {
+			cost := 1
+			if a[i] == b[j] {
+				cost = 0
+			}
+			cur[j+1] = min(min(cur[j]+1, prev[j+1]+1), prev[j]+cost)
+		}
+		prev, cur = cur, prev
+	}
+	return prev[lb]
+}
+
+func findSimilarApps(name, appsDir string) string {
+	entries, err := os.ReadDir(appsDir)
+	if err != nil {
+		return ""
+	}
+	var close []string
+	for _, e := range entries {
+		if !e.IsDir() {
+			continue
+		}
+		dist := levenshtein(strings.ToLower(name), strings.ToLower(e.Name()))
+		if dist > 0 && dist <= 3 {
+			close = append(close, "'"+e.Name()+"'")
+		}
+	}
+	if len(close) == 0 {
+		return ""
+	}
+	return strings.Join(close, ", ")
 }
