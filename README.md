@@ -87,6 +87,13 @@ goscoop uninstall googlechrome
 | Suggest similar name on typo | | ✓ |
 | Warn on leftover installation | | ✓ |
 
+## v0.1.1 — UX improvements
+
+- All commands now handle missing scoop directories gracefully (friendly messages instead of raw Go errors)
+- `findInnounp` respects `SCOOP` env var instead of hard-coded paths
+- Non-fatal search index rebuild after bucket update
+- Typo detection in `uninstall` + leftover binary warnings
+
 ## Not yet implemented
 
 | Command | Original Scoop |

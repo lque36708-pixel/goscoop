@@ -31,7 +31,8 @@ var cacheListCmd = &cobra.Command{
 		cfg := config.Load()
 		entries, err := os.ReadDir(cfg.CacheDir)
 		if err != nil {
-			return fmt.Errorf("read cache: %w", err)
+			fmt.Println("Cache is empty.")
+			return nil
 		}
 
 		if len(entries) == 0 {

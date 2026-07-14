@@ -28,7 +28,8 @@ func init() {
 
 		cfg := config.Load()
 		if _, err := os.Stat(cfg.BucketsDir); os.IsNotExist(err) {
-			return fmt.Errorf("no buckets directory at %s", cfg.BucketsDir)
+			fmt.Println("No buckets installed. Use 'goscoop bucket add main <url>' to add a bucket.")
+			return nil
 		}
 
 		cachePath := filepath.Join(cfg.CacheDir, "search-index.json")

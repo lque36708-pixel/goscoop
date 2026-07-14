@@ -30,13 +30,17 @@ var bucketListCmd = &cobra.Command{
 	Short: "List installed buckets",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cfg := config.Load()
+		if _, err := os.Stat(cfg.BucketsDir); os.IsNotExist(err) {
+			fmt.Println("No buckets installed. Use 'goscoop bucket add <name> [<repo>]' to add one.")
+			return nil
+		}
 		entries, err := os.ReadDir(cfg.BucketsDir)
 		if err != nil {
 			return fmt.Errorf("read buckets: %w", err)
 		}
 
 		if len(entries) == 0 {
-			fmt.Println("No buckets installed.")
+			fmt.Println("No buckets installed. Use 'goscoop bucket add <name> [<repo>]' to add one.")
 			return nil
 		}
 

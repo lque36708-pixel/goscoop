@@ -25,7 +25,8 @@ var statusCmd = &cobra.Command{
 
 		entries, err := os.ReadDir(cfg.AppsDir)
 		if err != nil {
-			return fmt.Errorf("read apps: %w", err)
+			fmt.Println("No apps installed yet.")
+			return nil
 		}
 
 		fmt.Printf("%sChecking for outdated apps...%s\n", progress.Cyan, progress.Reset)

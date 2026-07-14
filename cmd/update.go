@@ -79,7 +79,8 @@ var updateCmd = &cobra.Command{
 func updateBuckets(cfg *config.Config) error {
 	entries, err := os.ReadDir(cfg.BucketsDir)
 	if err != nil {
-		return fmt.Errorf("read buckets: %w", err)
+		fmt.Println("No buckets to update. Use 'goscoop bucket add <name> <repo>' to add one.")
+		return nil
 	}
 
 	for _, entry := range entries {
@@ -104,10 +105,10 @@ func updateBuckets(cfg *config.Config) error {
 		spinner.Done("")
 	}
 
-	// Rebuild search index
+	// Rebuild search index (non-fatal on failure)
 	cachePath := filepath.Join(cfg.CacheDir, "search-index.json")
 	if err := bucket.BuildSearchIndex(cfg.BucketsDir, cachePath); err != nil {
-		return fmt.Errorf("rebuild search index: %w", err)
+		fmt.Fprintf(os.Stderr, "Warning: could not rebuild search index: %v\n", err)
 	}
 
 	return nil

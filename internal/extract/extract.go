@@ -255,10 +255,13 @@ func InnoSetup(src, dest, extractDir string) error {
 }
 
 func findInnounp() string {
-	// Check common locations
+	scoopDir := os.Getenv("SCOOP")
+	if scoopDir == "" {
+		home, _ := os.UserHomeDir()
+		scoopDir = filepath.Join(home, "scoop")
+	}
 	candidates := []string{
-		filepath.Join(os.Getenv("USERPROFILE"), "scoop", "apps", "innounp-unicode", "current", "innounp.exe"),
-		filepath.Join(os.Getenv("LOCALAPPDATA"), "scoop", "apps", "innounp-unicode", "current", "innounp.exe"),
+		filepath.Join(scoopDir, "apps", "innounp-unicode", "current", "innounp.exe"),
 		"innounp.exe",
 	}
 	for _, c := range candidates {

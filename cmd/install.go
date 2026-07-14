@@ -258,6 +258,9 @@ func resolveBins(bin, fallback bucket.BinList) []string {
 }
 
 func findManifest(cfg *config.Config, app string) (*bucket.Manifest, string, error) {
+	if _, err := os.Stat(cfg.BucketsDir); os.IsNotExist(err) {
+		return nil, "", fmt.Errorf("no buckets found. Use 'goscoop bucket add <name> <repo>' to add a bucket first")
+	}
 	entries, err := os.ReadDir(cfg.BucketsDir)
 	if err != nil {
 		return nil, "", fmt.Errorf("read buckets: %w", err)

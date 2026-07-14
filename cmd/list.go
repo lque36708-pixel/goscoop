@@ -23,11 +23,12 @@ var listCmd = &cobra.Command{
 		cfg := config.Load()
 		entries, err := os.ReadDir(cfg.AppsDir)
 		if err != nil {
-			return fmt.Errorf("no apps directory: %w", err)
+			fmt.Println("No apps installed yet.")
+			return nil
 		}
 
 		if len(entries) == 0 {
-			fmt.Println("There aren't any apps installed.")
+			fmt.Println("No apps installed yet.")
 			return nil
 		}
 

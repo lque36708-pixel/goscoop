@@ -23,7 +23,8 @@ var optimizeCmd = &cobra.Command{
 		cfg := config.Load()
 		entries, err := os.ReadDir(cfg.AppsDir)
 		if err != nil {
-			return fmt.Errorf("read apps dir: %w", err)
+			fmt.Println("No apps installed yet.")
+			return nil
 		}
 
 		var totalBefore, totalAfter int64
