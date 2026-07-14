@@ -10,7 +10,7 @@ Native Go CLI that replaces Scoop's PowerShell backend. Compatible with existing
 
 **Standalone install** (creates `~\goscoop\` and adds to PATH):
 ```cmd
-md "%USERPROFILE%\goscoop" && curl -Lo "%USERPROFILE%\goscoop\goscoop.exe" https://github.com/lque36708-pixel/goscoop/releases/latest/download/goscoop.exe && setx PATH "%PATH%;%USERPROFILE%\goscoop"
+md "%USERPROFILE%\goscoop" >nul 2>nul & curl -Lo "%USERPROFILE%\goscoop\goscoop.exe" https://github.com/lque36708-pixel/goscoop/releases/latest/download/goscoop.exe && setx PATH "%PATH%;%USERPROFILE%\goscoop"
 ```
 
 **If you already have Scoop** (put in Scoop's shims directory, already on PATH):

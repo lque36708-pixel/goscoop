@@ -8,7 +8,7 @@ Trình CLI viết bằng Go thay thế backend PowerShell của Scoop. Tương t
 
 **Cài độc lập** (tạo `~\goscoop\` và thêm vào PATH):
 ```cmd
-md "%USERPROFILE%\goscoop" && curl -Lo "%USERPROFILE%\goscoop\goscoop.exe" https://github.com/lque36708-pixel/goscoop/releases/latest/download/goscoop.exe && setx PATH "%PATH%;%USERPROFILE%\goscoop"
+md "%USERPROFILE%\goscoop" >nul 2>nul & curl -Lo "%USERPROFILE%\goscoop\goscoop.exe" https://github.com/lque36708-pixel/goscoop/releases/latest/download/goscoop.exe && setx PATH "%PATH%;%USERPROFILE%\goscoop"
 ```
 
 **Nếu bạn đã có Scoop** (đặt vào thư mục shims của Scoop, đã có trong PATH):
