@@ -4,11 +4,45 @@ Native Go CLI that replaces Scoop's PowerShell backend. Compatible with existing
 
 ## Install
 
+### One-liner (PowerShell)
+
+**If you already have Scoop** (put in Scoop's shims directory, already on PATH):
+```powershell
+iwr -Uri https://github.com/lque36708-pixel/goscoop/releases/latest/download/goscoop.exe -OutFile "$env:USERPROFILE\scoop\shims\goscoop.exe"
 ```
+
+**Standalone install** (creates `~\goscoop\` and adds to PATH):
+```powershell
+md "$env:USERPROFILE\goscoop" -Force; iwr -Uri https://github.com/lque36708-pixel/goscoop/releases/latest/download/goscoop.exe -OutFile "$env:USERPROFILE\goscoop\goscoop.exe"; setx PATH "$env:PATH;$env:USERPROFILE\goscoop"
+```
+
+No admin required. Restart your terminal after `setx`.
+
+### Via `go install`
+
+```bash
+go install github.com/lque36708-pixel/goscoop@latest
+```
+
+### From source
+
+```bash
+git clone https://github.com/lque36708-pixel/goscoop.git
+cd goscoop
 go build -o goscoop.exe .
 ```
 
-Put `goscoop.exe` somewhere in your `PATH`.
+Put `goscoop.exe` somewhere in your PATH (e.g. `~\scoop\shims\` or `~\goscoop\`).
+
+## Usage
+
+```
+goscoop search chrome
+goscoop install googlechrome
+goscoop list
+goscoop update
+goscoop uninstall googlechrome
+```
 
 ## Commands
 
@@ -18,7 +52,7 @@ Put `goscoop.exe` somewhere in your `PATH`.
 | `update [app]` | Update all buckets / a specific app |
 | `uninstall <app> [apps...]` | Remove app(s) (`-p` to purge persist) |
 | `list` | Show installed apps |
-| `search <query>` | Search across all buckets |
+| `search <query>` | Search across all buckets (auto-cached after first run) |
 | `status` | Show outdated apps (respects `.hold`) |
 | `info <app>` | Show manifest details |
 | `bucket list\|add\|rm` | Manage buckets |
@@ -32,23 +66,26 @@ Put `goscoop.exe` somewhere in your `PATH`.
 
 | Feature | Scoop (PS) | goscoop |
 |---|---|---|
-| Single binary |  |  |
-| Zero runtime dependencies |  |  |
-| Multi-threaded download |  |  (4 parts per file) |
-| Animated ASCII progress |  |  |
-| Auto LZX compression on install |  |  |
-| `optimize` command |  |  |
-| Start Menu shortcuts |  |  |
-| Manifest `depends` |  |  |
-| Persist (dirs + files) |  |  |
-| Nested archive extraction |  |  |
-| Innosetup / MSI / 7z / tar |  |  |
-| Pre/post install scripts |  |  |
-| Bucket management |  |  |
-| Hold / unhold |  |  |
-| `list` / `search` / `status` |  |  |
-| `cache` management |  |  |
-| `--global` support |  |  |
+| Single binary | | ✓ |
+| Zero runtime dependencies | | ✓ |
+| Multi-threaded download | | ✓ (4 parts per file) |
+| Animated ASCII progress | | ✓ |
+| Auto LZX compression on install | | ✓ |
+| `optimize` command | | ✓ |
+| Start Menu shortcuts | ✓ | ✓ |
+| Manifest `depends` | ✓ | ✓ |
+| Persist (dirs + files) | ✓ | ✓ |
+| Nested archive extraction | ✓ | ✓ |
+| Innosetup / MSI / 7z / tar | ✓ | ✓ |
+| Pre/post install scripts | ✓ | ✓ |
+| Bucket management | ✓ | ✓ |
+| Hold / unhold | ✓ | ✓ |
+| Search cache / index | | ✓ |
+| `list` / `search` / `status` | ✓ | ✓ |
+| `cache` management | ✓ | ✓ |
+| `--global` support | ✓ | ✓ |
+| Suggest similar name on typo | | ✓ |
+| Warn on leftover installation | | ✓ |
 
 ## Not yet implemented
 
