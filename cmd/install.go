@@ -257,9 +257,46 @@ func resolveBins(bin, fallback bucket.BinList) []string {
 	return nil
 }
 
+var defaultBuckets = map[string]string{
+	"main":   "https://github.com/ScoopInstaller/Main",
+	"extras": "https://github.com/ScoopInstaller/Extras",
+}
+
+func ensureDefaultBuckets(cfg *config.Config) error {
+	if _, err := os.Stat(cfg.BucketsDir); err == nil {
+		entries, _ := os.ReadDir(cfg.BucketsDir)
+		if len(entries) > 0 {
+			return nil
+		}
+	}
+
+	if _, err := exec.LookPath("git"); err != nil {
+		return fmt.Errorf("git is required to download buckets. Install git and run 'goscoop bucket add main <repo>'")
+	}
+
+	fmt.Printf("%sSetting up default buckets...%s\n", progress.Cyan+progress.Bold, progress.Reset)
+	os.MkdirAll(cfg.BucketsDir, 0755)
+
+	for name, repo := range defaultBuckets {
+		bucketDir := filepath.Join(cfg.BucketsDir, name)
+		if _, err := os.Stat(bucketDir); err == nil {
+			continue
+		}
+		sp := progress.NewSpinner(fmt.Sprintf("Cloning %s bucket", name))
+		sp.Start()
+		cmd := exec.Command("git", "clone", repo, bucketDir)
+		if output, err := cmd.CombinedOutput(); err != nil {
+			sp.Fail(string(output))
+			return fmt.Errorf("clone %s: %w", repo, err)
+		}
+		sp.Done("")
+	}
+	return nil
+}
+
 func findManifest(cfg *config.Config, app string) (*bucket.Manifest, string, error) {
-	if _, err := os.Stat(cfg.BucketsDir); os.IsNotExist(err) {
-		return nil, "", fmt.Errorf("no buckets found. Use 'goscoop bucket add <name> <repo>' to add a bucket first")
+	if err := ensureDefaultBuckets(cfg); err != nil {
+		return nil, "", err
 	}
 	entries, err := os.ReadDir(cfg.BucketsDir)
 	if err != nil {

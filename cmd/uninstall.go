@@ -17,9 +17,11 @@ import (
 )
 
 var uninstallPurge bool
+var uninstallSelf bool
 
 func init() {
 	uninstallCmd.Flags().BoolVarP(&uninstallPurge, "purge", "p", false, "Remove persist data as well")
+	uninstallCmd.Flags().BoolVar(&uninstallSelf, "self", false, "Uninstall goscoop and remove all scoop data")
 	rootCmd.AddCommand(uninstallCmd)
 }
 
@@ -140,32 +142,26 @@ func uninstallApp(app string, cfg *config.Config) error {
 }
 
 func stillAvailable(app string) bool {
-	// Use "where" (Windows equivalent of "which") to check if the binary is still on PATH
-	if err := exec.Command("where", app).Run(); err == nil {
-		return true
-	}
-	// Also check common standalone install locations for known apps
-	switch strings.ToLower(app) {
-	case "googlechrome", "chrome", "google-chrome":
-		paths := []string{
-			filepath.Join(os.Getenv("LOCALAPPDATA"), "Google", "Chrome", "Application", "chrome.exe"),
-			filepath.Join(os.Getenv("ProgramFiles"), "Google", "Chrome", "Application", "chrome.exe"),
-			filepath.Join(os.Getenv("ProgramFiles")+" (x86)", "Google", "Chrome", "Application", "chrome.exe"),
-		}
-		for _, p := range paths {
-			if _, err := os.Stat(p); err == nil {
-				return true
-			}
-		}
-	}
-	return false
+	return exec.Command("where", app).Run() == nil
 }
 
 var uninstallCmd = &cobra.Command{
 	Use:   "uninstall <app> [apps...]",
 	Short: "Uninstall one or more apps",
-	Args:  cobra.MinimumNArgs(1),
+	Long: `Uninstall one or more apps, or remove goscoop entirely with --self.
+
+Use --self to remove goscoop, all apps, buckets, cache, and persist data.`,
+	Args: cobra.MaximumNArgs(100),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if uninstallSelf {
+			if len(args) > 0 {
+				return fmt.Errorf("--self cannot be combined with app names")
+			}
+			return uninstallSelfCmd()
+		}
+		if len(args) == 0 {
+			return fmt.Errorf("specify an app to uninstall, or use --self to remove goscoop entirely")
+		}
 		cfg := config.Load()
 		for _, app := range args {
 			if err := uninstallApp(app, cfg); err != nil {
@@ -174,6 +170,59 @@ var uninstallCmd = &cobra.Command{
 		}
 		return nil
 	},
+}
+
+func uninstallSelfCmd() error {
+	fmt.Printf("%sWARNING:%s This will remove goscoop and ALL scoop data:\n", progress.Red+progress.Bold, progress.Reset)
+	fmt.Printf("  - All installed apps\n")
+	fmt.Printf("  - All buckets\n")
+	fmt.Printf("  - Download cache\n")
+	fmt.Printf("  - Persist data\n")
+	fmt.Printf("  - The goscoop binary itself\n")
+	fmt.Printf("\n%sAre you sure? [y/N]:%s ", progress.Yellow, progress.Reset)
+
+	reader := bufio.NewReader(os.Stdin)
+	resp, _ := reader.ReadString('\n')
+	resp = strings.TrimSpace(resp)
+	if !strings.EqualFold(resp, "y") && !strings.EqualFold(resp, "yes") {
+		fmt.Println("Cancelled.")
+		return nil
+	}
+
+	cfg := config.Load()
+
+	// Remove scoop root directory
+	if _, err := os.Stat(cfg.ScoopDir); err == nil {
+		fmt.Printf("Removing %s ...\n", cfg.ScoopDir)
+		if err := safeRemoveAll(cfg.ScoopDir); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: could not remove %s: %v\n", cfg.ScoopDir, err)
+		} else {
+			fmt.Printf("Removed %s\n", cfg.ScoopDir)
+		}
+	}
+
+	// Remove the standalone install directory if it exists
+	goscoopDir := filepath.Join(os.Getenv("USERPROFILE"), "goscoop")
+	if _, err := os.Stat(goscoopDir); err == nil {
+		fmt.Printf("Removing %s ...\n", goscoopDir)
+		if err := safeRemoveAll(goscoopDir); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: could not remove %s: %v\n", goscoopDir, err)
+		} else {
+			fmt.Printf("Removed %s\n", goscoopDir)
+		}
+	}
+
+	// Remove shims from PATH integration (the goscoop shims dir)
+	shimsDir := filepath.Join(os.Getenv("USERPROFILE"), "scoop", "shims")
+	if _, err := os.Stat(shimsDir); err == nil {
+		if err := safeRemoveAll(shimsDir); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: could not remove %s: %v\n", shimsDir, err)
+		}
+	}
+
+	fmt.Printf("\n%sgoscoop has been removed.%s\n", progress.Green+progress.Bold, progress.Reset)
+	fmt.Printf("To clean up your PATH, remove %%USERPROFILE%%\\goscoop from your PATH environment variable.\n")
+	return nil
 }
 
 func stopAppProcesses(app string, cfg *config.Config) {

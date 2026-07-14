@@ -50,7 +50,7 @@ goscoop uninstall googlechrome
 |---|---|
 | `install <app>` | Install an app (multi-threaded download, auto-extract, persist, shim, LZX compress) |
 | `update [app]` | Update all buckets / a specific app |
-| `uninstall <app> [apps...]` | Remove app(s) (`-p` to purge persist) |
+| `uninstall <app> [apps...]` | Remove app(s) (`-p` to purge persist; `--self` to remove goscoop entirely) |
 | `list` | Show installed apps |
 | `search <query>` | Search across all buckets (auto-cached after first run) |
 | `status` | Show outdated apps (respects `.hold`) |
@@ -92,7 +92,8 @@ goscoop uninstall googlechrome
 - All commands now handle missing scoop directories gracefully (friendly messages instead of raw Go errors)
 - `findInnounp` respects `SCOOP` env var instead of hard-coded paths
 - Non-fatal search index rebuild after bucket update
-- Typo detection in `uninstall` + leftover binary warnings
+- `uninstall --self` to completely remove goscoop and all scoop data
+- Removed hard-coded Chrome paths in `stillAvailable`
 
 ## Not yet implemented
 

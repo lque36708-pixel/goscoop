@@ -27,8 +27,8 @@ func init() {
 		}
 
 		cfg := config.Load()
-		if _, err := os.Stat(cfg.BucketsDir); os.IsNotExist(err) {
-			fmt.Println("No buckets installed. Use 'goscoop bucket add main <url>' to add a bucket.")
+		if err := ensureDefaultBuckets(cfg); err != nil {
+			fmt.Println(err)
 			return nil
 		}
 

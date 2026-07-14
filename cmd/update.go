@@ -77,10 +77,13 @@ var updateCmd = &cobra.Command{
 }
 
 func updateBuckets(cfg *config.Config) error {
+	if err := ensureDefaultBuckets(cfg); err != nil {
+		fmt.Println(err)
+		return nil
+	}
 	entries, err := os.ReadDir(cfg.BucketsDir)
 	if err != nil {
-		fmt.Println("No buckets to update. Use 'goscoop bucket add <name> <repo>' to add one.")
-		return nil
+		return fmt.Errorf("read buckets: %w", err)
 	}
 
 	for _, entry := range entries {
