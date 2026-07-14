@@ -129,7 +129,36 @@ func uninstallApp(app string, cfg *config.Config) error {
 
 	fmt.Printf("%s'%s'%s was uninstalled.\n",
 		progress.Bold, app, progress.Reset)
+
+	// Check if the app binary is still available after uninstall
+	if stillAvailable(app) {
+		fmt.Fprintf(os.Stderr, "%sNote:%s '%s' is still available on your system. It may have been installed separately (e.g. by the app's own installer or auto-updater).\n",
+			progress.Yellow, progress.Reset, app)
+	}
+
 	return nil
+}
+
+func stillAvailable(app string) bool {
+	// Use "where" (Windows equivalent of "which") to check if the binary is still on PATH
+	if err := exec.Command("where", app).Run(); err == nil {
+		return true
+	}
+	// Also check common standalone install locations for known apps
+	switch strings.ToLower(app) {
+	case "googlechrome", "chrome", "google-chrome":
+		paths := []string{
+			filepath.Join(os.Getenv("LOCALAPPDATA"), "Google", "Chrome", "Application", "chrome.exe"),
+			filepath.Join(os.Getenv("ProgramFiles"), "Google", "Chrome", "Application", "chrome.exe"),
+			filepath.Join(os.Getenv("ProgramFiles")+" (x86)", "Google", "Chrome", "Application", "chrome.exe"),
+		}
+		for _, p := range paths {
+			if _, err := os.Stat(p); err == nil {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 var uninstallCmd = &cobra.Command{
