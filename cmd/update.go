@@ -270,10 +270,13 @@ func updateApp(cfg *config.Config, app string) error {
 	createShortcuts(app, shortcuts, verDir, false)
 
 	// Unlink old current first, then link new
-	current := cfg.CurrentDir(app)
-	oldLink, _ := os.Readlink(current)
-	os.Remove(current)
-	os.Symlink(verDir, current)
+	oldLink, _ := os.Readlink(cfg.CurrentDir(app))
+	if oldLink == "" {
+		// Try reading the old-style symlink
+		oldLink = cfg.CurrentDir(app)
+	}
+
+	linkCurrentDir(appDir, latestVersion)
 
 	// Write install info (updated version)
 	installInfo := fmt.Sprintf(`{
@@ -282,7 +285,7 @@ func updateApp(cfg *config.Config, app string) error {
     "version": "%s"
 }
 `, bucketName, latestVersion)
-	os.WriteFile(filepath.Join(current, "install.json"), []byte(installInfo), 0644)
+	os.WriteFile(filepath.Join(appDir, "current", "install.json"), []byte(installInfo), 0644)
 
 	fmt.Printf("%s'%s'%s was updated successfully!\n",
 		progress.Green+progress.Bold, app, progress.Reset)

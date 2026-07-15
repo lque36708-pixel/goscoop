@@ -55,7 +55,11 @@ var installCmd = &cobra.Command{
 				continue
 			}
 			if installCompress {
-				appDir := cfg.AppDir(app)
+				scoopDir := cfg.ScoopDir
+				if installGlobal {
+					scoopDir = filepath.Join(os.Getenv("ProgramData"), "scoop")
+				}
+				appDir := filepath.Join(scoopDir, "apps", app)
 				subs, _ := os.ReadDir(appDir)
 				for _, sub := range subs {
 					if sub.IsDir() && sub.Name() != "current" {
@@ -81,6 +85,17 @@ func installApp(cfg *config.Config, app string) error {
 		return err
 	}
 
+	scoopDir := cfg.ScoopDir
+	if installGlobal {
+		scoopDir = filepath.Join(os.Getenv("ProgramData"), "scoop")
+	}
+
+	appDir := filepath.Join(scoopDir, "apps", app)
+	if _, err := os.Stat(appDir); err == nil {
+		fmt.Printf("%s'%s'%s is already installed.\n", progress.Yellow+progress.Bold, app, progress.Reset)
+		return nil
+	}
+
 	// Install dependencies first
 	if len(man.Depends) > 0 {
 		fmt.Printf("%sInstalling%s dependencies for %s'%s'%s: %s\n",
@@ -88,7 +103,7 @@ func installApp(cfg *config.Config, app string) error {
 			progress.Yellow, app, progress.Reset,
 			strings.Join(man.Depends, ", "))
 		for _, dep := range man.Depends {
-			depDir := cfg.AppDir(dep)
+			depDir := filepath.Join(scoopDir, "apps", dep)
 			if _, err := os.Stat(depDir); os.IsNotExist(err) {
 				fmt.Printf("%sInstalling dependency%s %s'%s'%s...\n",
 					progress.Cyan+progress.Bold, progress.Reset,
@@ -114,14 +129,10 @@ func installApp(cfg *config.Config, app string) error {
 		progress.Cyan, progress.Reset,
 		progress.Yellow, bucketName, progress.Reset)
 
-	verDir := cfg.VersionDir(app, version)
+	verDir := filepath.Join(scoopDir, "apps", app, version)
 	safeRemoveAll(verDir)
 	os.MkdirAll(verDir, 0755)
 
-	scoopDir := cfg.ScoopDir
-	if installGlobal {
-		scoopDir = filepath.Join(os.Getenv("ProgramData"), "scoop")
-	}
 	persistDir := persist.Dir(app, scoopDir)
 
 	// Download and extract each URL
@@ -203,8 +214,8 @@ func installApp(cfg *config.Config, app string) error {
 	createShortcuts(app, shortcuts, verDir, installGlobal)
 
 	// Link current
-	linkCurrent(cfg, app, version)
-	writeInstallInfo(cfg, app, version, bucketName)
+	linkCurrentDir(filepath.Join(scoopDir, "apps", app), version)
+	writeInstallInfo(app, version, bucketName, scoopDir)
 
 	fmt.Printf("%s'%s'%s (%s%s%s) was installed successfully!\n",
 		progress.Green+progress.Bold, app, progress.Reset,
@@ -327,6 +338,16 @@ func ensureDefaultBuckets(cfg *config.Config) error {
 		}
 		sp.Done("")
 	}
+
+	// Warm up search index
+	cachePath := filepath.Join(cfg.CacheDir, "search-index.json")
+	if err := bucket.BuildSearchIndex(cfg.BucketsDir, cachePath); err != nil {
+		fmt.Fprintf(os.Stderr, "  %sWarning%s: could not build search index: %v\n",
+			progress.Yellow, progress.Reset, err)
+	} else {
+		fmt.Printf("%sSearch index built.%s\n", progress.Cyan+progress.Bold, progress.Reset)
+	}
+
 	return nil
 }
 
@@ -465,10 +486,10 @@ func findBinary(dir, binRel string) string {
 	return best
 }
 
-func linkCurrent(cfg *config.Config, app, version string) {
-	current := cfg.CurrentDir(app)
-	verDir := cfg.VersionDir(app, version)
-	os.Remove(current)
+func linkCurrentDir(appDir, version string) {
+	current := filepath.Join(appDir, "current")
+	verDir := filepath.Join(appDir, version)
+	safeRemoveAll(current)
 
 	// Try os.Symlink first (requires Developer Mode on Win10+)
 	if err := os.Symlink(verDir, current); err == nil {
@@ -510,13 +531,13 @@ func copyDir(src, dst string) {
 	})
 }
 
-func writeInstallInfo(cfg *config.Config, app, version, bucket string) {
+func writeInstallInfo(app, version, bucket, scoopDir string) {
 	info := fmt.Sprintf(`{
     "bucket": "%s",
     "architecture": "64bit"
 }
 `, bucket)
-	current := cfg.CurrentDir(app)
+	current := filepath.Join(scoopDir, "apps", app, "current")
 	os.WriteFile(filepath.Join(current, "install.json"), []byte(info), 0644)
 }
 
