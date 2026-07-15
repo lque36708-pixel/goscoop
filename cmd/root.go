@@ -7,6 +7,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var Version = "dev"
+
 var rootCmd = &cobra.Command{
 	Use:           "goscoop",
 	Short:         "goscoop - Native Go rewrite of Scoop package manager",
