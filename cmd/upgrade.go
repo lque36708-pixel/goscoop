@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -13,7 +14,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var upgradeForce bool
+
 func init() {
+	upgradeCmd.Flags().BoolVarP(&upgradeForce, "force", "f", false, "Force re-download even if up to date")
 	rootCmd.AddCommand(upgradeCmd)
 }
 
@@ -23,6 +27,22 @@ var upgradeCmd = &cobra.Command{
 	Long:  `Downloads and replaces the current goscoop binary with the latest release from GitHub.`,
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		// Check latest release version via GitHub API
+		latestTag, err := latestReleaseTag()
+		if err != nil {
+			return fmt.Errorf("check version: %w", err)
+		}
+		if Version == "dev" || Version == latestTag {
+			if upgradeForce {
+				fmt.Printf("Already at %s, re-downloading (--force)...\n", latestTag)
+			} else {
+				fmt.Printf("%s is already up to date\n", latestTag)
+				return nil
+			}
+		} else {
+			fmt.Printf("Updating %s -> %s...\n", Version, latestTag)
+		}
+
 		exe, err := os.Executable()
 		if err != nil {
 			return fmt.Errorf("cannot determine binary path: %w", err)
@@ -33,8 +53,6 @@ var upgradeCmd = &cobra.Command{
 		}
 
 		url := "https://github.com/lque36708-pixel/goscoop/releases/latest/download/goscoop.exe"
-		fmt.Printf("%sDownloading%s latest goscoop...\n", progress.Cyan+progress.Bold, progress.Reset)
-
 		resp, err := http.Get(url)
 		if err != nil {
 			return fmt.Errorf("download: %w", err)
@@ -88,4 +106,20 @@ del "%%~f0"
 		fmt.Printf("%sgoscoop has been updated! Restart your terminal or run the new binary.\n", progress.Green+progress.Bold)
 		return nil
 	},
+}
+
+func latestReleaseTag() (string, error) {
+	resp, err := http.Get("https://api.github.com/repos/lque36708-pixel/goscoop/releases/latest")
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	var rel struct {
+		TagName string `json:"tag_name"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&rel); err != nil {
+		return "", err
+	}
+	return rel.TagName, nil
 }
