@@ -2,6 +2,7 @@ package git
 
 import (
 	"io"
+	"os"
 
 	gogit "github.com/go-git/go-git/v5"
 )
@@ -20,36 +21,34 @@ func Pull(dir string, progress io.Writer) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	wt, err := repo.Worktree()
+
+	// Get the remote URL to re-clone
+	remote, err := repo.Remote("origin")
 	if err != nil {
 		return false, err
 	}
+	url := remote.Config().URLs[0]
 
-	oldHash, err := repo.Head()
-	if err != nil {
+	// Get old HEAD to compare later
+	oldRef, oldErr := repo.Head()
+
+	// Re-clone (depth=1 is fast, avoids go-git Pull issues with file modes on Windows)
+	os.RemoveAll(dir)
+	if err := Clone(url, dir, progress); err != nil {
 		return false, err
 	}
 
-	// Discard any local changes before pulling
-	_ = wt.Reset(&gogit.ResetOptions{
-		Mode:   gogit.HardReset,
-		Commit: oldHash.Hash(),
-	})
-
-	err = wt.Pull(&gogit.PullOptions{
-		Progress: progress,
-	})
-	if err == gogit.NoErrAlreadyUpToDate {
-		return false, nil
-	}
-	if err != nil {
-		return false, err
+	if oldErr != nil {
+		return true, nil
 	}
 
-	// Check if HEAD actually changed (got new commits)
-	newHash, err := repo.Head()
+	repo, err = gogit.PlainOpen(dir)
 	if err != nil {
-		return false, err
+		return true, nil
 	}
-	return oldHash.Hash() != newHash.Hash(), nil
+	newRef, err := repo.Head()
+	if err != nil {
+		return true, nil
+	}
+	return oldRef.Hash() != newRef.Hash(), nil
 }
