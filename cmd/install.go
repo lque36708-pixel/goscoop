@@ -34,11 +34,31 @@ func init() {
 }
 
 var installCmd = &cobra.Command{
-	Use:   "install <app>",
-	Short: "Install an app",
-	Args:  cobra.ExactArgs(1),
+	Use:   "install <app>...",
+	Short: "Install one or more apps",
+	Args:  cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return installApp(config.Load(), args[0])
+		cfg := config.Load()
+		var failed []string
+		for _, app := range args {
+			if _, _, err := findManifest(cfg, app); err != nil {
+				fmt.Fprintf(os.Stderr, "%sSkipping %s'%s'%s: %v%s\n",
+					progress.Yellow, progress.Bold, app, progress.Reset, err, progress.Reset)
+				failed = append(failed, app)
+				continue
+			}
+			if err := installApp(cfg, app); err != nil {
+				fmt.Fprintf(os.Stderr, "  error: %s\n", err)
+				failed = append(failed, app)
+			}
+		}
+		success := len(args) - len(failed)
+		if len(failed) > 0 {
+			fmt.Fprintf(os.Stderr, "\n%d succeeded, %d failed: %s\n",
+				success, len(failed), strings.Join(failed, ", "))
+			return fmt.Errorf("%d install(s) failed", len(failed))
+		}
+		return nil
 	},
 }
 
