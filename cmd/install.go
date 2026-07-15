@@ -27,9 +27,11 @@ import (
 )
 
 var installGlobal bool
+var installCompress bool
 
 func init() {
 	installCmd.Flags().BoolVarP(&installGlobal, "global", "g", false, "Install globally")
+	installCmd.Flags().BoolVarP(&installCompress, "compress", "c", false, "Apply LZX compression after install")
 	rootCmd.AddCommand(installCmd)
 }
 
@@ -50,6 +52,17 @@ var installCmd = &cobra.Command{
 			if err := installApp(cfg, app); err != nil {
 				fmt.Fprintf(os.Stderr, "  error: %s\n", err)
 				failed = append(failed, app)
+				continue
+			}
+			if installCompress {
+				appDir := cfg.AppDir(app)
+				subs, _ := os.ReadDir(appDir)
+				for _, sub := range subs {
+					if sub.IsDir() && sub.Name() != "current" {
+						compressLZX(app, filepath.Join(appDir, sub.Name()))
+						break
+					}
+				}
 			}
 		}
 		success := len(args) - len(failed)
@@ -193,9 +206,6 @@ func installApp(cfg *config.Config, app string) error {
 	linkCurrent(cfg, app, version)
 	writeInstallInfo(cfg, app, version, bucketName)
 
-	// LZX compression
-	compressLZX(app, verDir)
-
 	fmt.Printf("%s'%s'%s (%s%s%s) was installed successfully!\n",
 		progress.Green+progress.Bold, app, progress.Reset,
 		progress.Bold, version, progress.Reset)
@@ -280,8 +290,16 @@ func resolveBins(bin, fallback bucket.BinList) []string {
 }
 
 var defaultBuckets = map[string]string{
-	"main":   "https://github.com/ScoopInstaller/Main",
-	"extras": "https://github.com/ScoopInstaller/Extras",
+	"main":        "https://github.com/ScoopInstaller/Main",
+	"extras":      "https://github.com/ScoopInstaller/Extras",
+	"versions":    "https://github.com/ScoopInstaller/Versions",
+	"nirsoft":     "https://github.com/ScoopInstaller/Nirsoft",
+	"sysinternals": "https://github.com/ScoopInstaller/Sysinternals",
+	"php":         "https://github.com/ScoopInstaller/PHP",
+	"nerd-fonts":  "https://github.com/ScoopInstaller/Nerd-Fonts",
+	"nonportable": "https://github.com/ScoopInstaller/Nonportable",
+	"games":       "https://github.com/ScoopInstaller/Games",
+	"java":        "https://github.com/ScoopInstaller/Java",
 }
 
 func ensureDefaultBuckets(cfg *config.Config) error {

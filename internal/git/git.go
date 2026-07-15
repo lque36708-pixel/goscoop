@@ -15,31 +15,41 @@ func Clone(url, dir string, progress io.Writer) error {
 	return err
 }
 
-func Pull(dir string, progress io.Writer) error {
+func Pull(dir string, progress io.Writer) (bool, error) {
 	repo, err := gogit.PlainOpen(dir)
 	if err != nil {
-		return err
+		return false, err
 	}
 	wt, err := repo.Worktree()
 	if err != nil {
-		return err
+		return false, err
+	}
+
+	oldHash, err := repo.Head()
+	if err != nil {
+		return false, err
 	}
 
 	// Discard any local changes before pulling
-	ref, err := repo.Head()
-	if err != nil {
-		return err
-	}
 	_ = wt.Reset(&gogit.ResetOptions{
 		Mode:   gogit.HardReset,
-		Commit: ref.Hash(),
+		Commit: oldHash.Hash(),
 	})
 
 	err = wt.Pull(&gogit.PullOptions{
 		Progress: progress,
 	})
 	if err == gogit.NoErrAlreadyUpToDate {
-		return nil
+		return false, nil
 	}
-	return err
+	if err != nil {
+		return false, err
+	}
+
+	// Check if HEAD actually changed (got new commits)
+	newHash, err := repo.Head()
+	if err != nil {
+		return false, err
+	}
+	return oldHash.Hash() != newHash.Hash(), nil
 }

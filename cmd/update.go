@@ -96,14 +96,19 @@ func updateBuckets(cfg *config.Config) error {
 			continue
 		}
 
-		spinner := progress.NewSpinner(fmt.Sprintf("Updating %s bucket", entry.Name()))
+		spinner := progress.NewSpinner(fmt.Sprintf("Checking %s bucket", entry.Name()))
 		spinner.Start()
 
-		if err := git2.Pull(bucketDir, nil); err != nil {
+		updated, err := git2.Pull(bucketDir, nil)
+		if err != nil {
 			spinner.Fail(err.Error())
 			continue
 		}
-		spinner.Done("")
+		if updated {
+			spinner.Done("updated")
+		} else {
+			spinner.Done("up to date")
+		}
 	}
 
 	// Rebuild search index (non-fatal on failure)
@@ -278,9 +283,6 @@ func updateApp(cfg *config.Config, app string) error {
 }
 `, bucketName, latestVersion)
 	os.WriteFile(filepath.Join(current, "install.json"), []byte(installInfo), 0644)
-
-	// LZX compression
-	compressLZX(app, verDir)
 
 	fmt.Printf("%s'%s'%s was updated successfully!\n",
 		progress.Green+progress.Bold, app, progress.Reset)
