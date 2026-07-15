@@ -294,12 +294,10 @@ var defaultBuckets = map[string]string{
 	"extras":      "https://github.com/ScoopInstaller/Extras",
 	"versions":    "https://github.com/ScoopInstaller/Versions",
 	"nirsoft":     "https://github.com/ScoopInstaller/Nirsoft",
-	"sysinternals": "https://github.com/ScoopInstaller/Sysinternals",
 	"php":         "https://github.com/ScoopInstaller/PHP",
-	"nerd-fonts":  "https://github.com/ScoopInstaller/Nerd-Fonts",
 	"nonportable": "https://github.com/ScoopInstaller/Nonportable",
-	"games":       "https://github.com/ScoopInstaller/Games",
 	"java":        "https://github.com/ScoopInstaller/Java",
+	"nerd-fonts":  "https://github.com/matthewjberger/scoop-nerd-fonts",
 }
 
 func ensureDefaultBuckets(cfg *config.Config) error {
@@ -322,7 +320,10 @@ func ensureDefaultBuckets(cfg *config.Config) error {
 		sp.Start()
 		if err := git2.Clone(repo, bucketDir, nil); err != nil {
 			sp.Fail(err.Error())
-			return fmt.Errorf("clone %s: %w", repo, err)
+			fmt.Fprintf(os.Stderr, "  %sWarning%s: could not clone %s bucket (%s)\n",
+				progress.Yellow, progress.Reset, name, err)
+			os.RemoveAll(bucketDir)
+			continue
 		}
 		sp.Done("")
 	}
