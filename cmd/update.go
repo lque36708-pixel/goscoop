@@ -249,7 +249,8 @@ func updateApp(cfg *config.Config, app string) error {
 		sp.Start()
 		if err := createShim(app, verDir, binRel); err != nil {
 			sp.Fail(err.Error())
-			return err
+			fmt.Fprintf(os.Stderr, "  warning: %s\n", err)
+			continue
 		}
 		sp.Done("")
 	}

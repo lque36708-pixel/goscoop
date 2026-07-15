@@ -220,6 +220,14 @@ func uninstallSelfCmd() error {
 		}
 	}
 
+	// Remove shims dir from PATH
+	psCmd := fmt.Sprintf(
+		`$p = [Environment]::GetEnvironmentVariable('PATH', 'User');`+
+			` $new = ($p -split ';' | Where-Object { $_ -ne '%s' }) -join ';';`+
+			` [Environment]::SetEnvironmentVariable('PATH', $new, 'User')`,
+		shimsDir)
+	exec.Command("powershell", "-Command", psCmd).Run()
+
 	fmt.Printf("\n%sgoscoop has been removed.%s\n", progress.Green+progress.Bold, progress.Reset)
 	fmt.Printf("To clean up your PATH, remove %%USERPROFILE%%\\goscoop from your PATH environment variable.\n")
 	return nil

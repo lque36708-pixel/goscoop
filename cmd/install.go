@@ -154,7 +154,8 @@ func installApp(cfg *config.Config, app string) error {
 		sp.Start()
 		if err := createShim(app, verDir, binRel); err != nil {
 			sp.Fail(err.Error())
-			return err
+			fmt.Fprintf(os.Stderr, "  warning: %s\n", err)
+			continue
 		}
 		sp.Done("")
 	}
@@ -384,30 +385,22 @@ func createShim(app, dir, binRel string) error {
 	}
 
 	base := strings.TrimSuffix(filepath.Base(binRel), filepath.Ext(binRel))
-	ext := strings.ToLower(filepath.Ext(binPath))
 
-	if ext == ".exe" || ext == ".com" {
-		shimFile := filepath.Join(shimsDir, base+".shim")
-		shimContent := fmt.Sprintf("path = \"%s\"\r\n", binPath)
-		if err := os.WriteFile(shimFile, []byte(shimContent), 0644); err != nil {
-			return err
-		}
-		shimExe := filepath.Join(shimsDir, base+".exe")
-		if _, err := os.Stat(shimExe); os.IsNotExist(err) {
-			scoopShim := filepath.Join(cfg.ScoopDir, "apps", "scoop", "current",
-				"supporting", "shims", "71", "shim.exe")
-			if data, err := os.ReadFile(scoopShim); err == nil {
-				os.WriteFile(shimExe, data, 0755)
-			}
-		}
-	} else {
-		shimPath := filepath.Join(shimsDir, base+".cmd")
-		content := "@echo off\r\n" +
-			`"%~dp0..\apps\` + app + `\current\` + binRel + `" %*` + "\r\n"
-		if err := os.WriteFile(shimPath, []byte(content), 0755); err != nil {
-			return err
-		}
+	// Clean up any old .shim/.exe files from previous installs
+	oldShim := filepath.Join(shimsDir, base+".shim")
+	oldExe := filepath.Join(shimsDir, base+".exe")
+	os.Remove(oldShim)
+	os.Remove(oldExe)
+
+	// Create .cmd batch shim for all binary types
+	shimPath := filepath.Join(shimsDir, base+".cmd")
+	content := "@echo off\r\n" +
+		`"%~dp0..\apps\` + app + `\current\` + binRel + `" %*` + "\r\n"
+	if err := os.WriteFile(shimPath, []byte(content), 0755); err != nil {
+		return err
 	}
+
+	ensureShimsInPath(shimsDir)
 	return nil
 }
 
@@ -437,8 +430,45 @@ func linkCurrent(cfg *config.Config, app, version string) {
 	current := cfg.CurrentDir(app)
 	verDir := cfg.VersionDir(app, version)
 	os.Remove(current)
-	os.Symlink(verDir, current)
-	fmt.Printf("Linking %s => %s\n", current, verDir)
+
+	// Try os.Symlink first (requires Developer Mode on Win10+)
+	if err := os.Symlink(verDir, current); err == nil {
+		fmt.Printf("Linking %s => %s\n", current, verDir)
+		return
+	}
+
+	// Fallback: junction via mklink (works without admin)
+	cmd := exec.Command("cmd", "/c", "mklink", "/J", current, verDir)
+	if output, err := cmd.CombinedOutput(); err == nil {
+		fmt.Printf("Linking %s => %s (junction)\n", current, verDir)
+		return
+	} else {
+		_ = output
+	}
+
+	// Last resort: copy directory
+	fmt.Fprintf(os.Stderr, "Warning: could not create symlink or junction for %s, copying directory\n", current)
+	copyDir(verDir, current)
+	fmt.Printf("Linking %s => %s (copy)\n", current, verDir)
+}
+
+func copyDir(src, dst string) {
+	os.RemoveAll(dst)
+	os.MkdirAll(dst, 0755)
+	filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		rel, _ := filepath.Rel(src, path)
+		target := filepath.Join(dst, rel)
+		if info.IsDir() {
+			os.MkdirAll(target, 0755)
+		} else {
+			data, _ := os.ReadFile(path)
+			os.WriteFile(target, data, info.Mode())
+		}
+		return nil
+	})
 }
 
 func writeInstallInfo(cfg *config.Config, app, version, bucket string) {
@@ -652,4 +682,23 @@ func formatSize(bytes int64) string {
 	default:
 		return fmt.Sprintf("%.1f KB", float64(bytes)/(1<<10))
 	}
+}
+
+func ensureShimsInPath(shimsDir string) {
+	current := os.Getenv("PATH")
+	if strings.Contains(current, shimsDir) {
+		return
+	}
+
+	// Add to user-level PATH permanently
+	psCmd := fmt.Sprintf(
+		`$p = [Environment]::GetEnvironmentVariable('PATH', 'User');`+
+			` if (($p -split ';') -notcontains '%s') {`+
+			` [Environment]::SetEnvironmentVariable('PATH', $p + ';' + '%s', 'User');`+
+			` Write-Host 'added' }`,
+		shimsDir, shimsDir)
+	exec.Command("powershell", "-Command", psCmd).Run()
+
+	// Update current process PATH for immediate effect
+	os.Setenv("PATH", current+";"+shimsDir)
 }

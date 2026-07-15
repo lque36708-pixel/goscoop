@@ -42,6 +42,11 @@ func Archive(src, dest, extractDir string) error {
 		return tarArchive(src, dest, extractDir, name, "")
 	case ext == ".msi":
 		return msiArchive(src, dest, extractDir, name)
+	case ext == ".exe":
+		if strings.HasSuffix(strings.ToLower(src), ".7z.exe") {
+			return sevenZArchive(src, dest, extractDir, name)
+		}
+		return copyAsIs(src, dest, filepath.Base(src))
 	default:
 		return copyAsIs(src, dest, filepath.Base(src))
 	}

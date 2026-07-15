@@ -59,7 +59,8 @@ var resetCmd = &cobra.Command{
 			sp.Start()
 			if err := createShim(app, verDir, binRel); err != nil {
 				sp.Fail(err.Error())
-				return err
+				fmt.Fprintf(os.Stderr, "  warning: %s\n", err)
+				continue
 			}
 			sp.Done("")
 		}
